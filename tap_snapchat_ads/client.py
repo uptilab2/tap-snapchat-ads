@@ -173,7 +173,7 @@ class SnapchatClient: # pylint: disable=too-many-instance-attributes
 
 
     @backoff.on_exception(backoff.expo,
-                          (Server5xxError, ConnectionError, Server429Error),
+                          (Server5xxError, ConnectionError, Server429Error, SnapchatUnauthorizedError),
                           max_tries=7,
                           factor=3)
     def request(self, method, path=None, url=None, **kwargs):
@@ -231,6 +231,9 @@ class SnapchatClient: # pylint: disable=too-many-instance-attributes
             wait_time = rate_limit_reset - int(time.time())
             LOGGER.warning('Waiting for {} seconds.'.format(wait_time))
             time.sleep(int(wait_time))
+
+        if response.status_code == 401:
+            raise SnapchatUnauthorizedError
 
         if response.status_code == 429:
             raise Server429Error()
