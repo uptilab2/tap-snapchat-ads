@@ -9,10 +9,10 @@ setup(name='tap-snapchat-ads',
       classifiers=['Programming Language :: Python :: 3 :: Only'],
       py_modules=['tap_snapchat_ads'],
       install_requires=[
-          'backoff==1.8.0',
-          'requests==2.21.0',
-          'pyhumps==1.3.1',
-          'singer-python==5.9.0'
+          'backoff>=1.8.0',
+          'requests>=2.21.0',
+          'pyhumps>=1.3.1',
+          'singer-python>=5.9.0'
       ],
       entry_points='''
           [console_scripts]
