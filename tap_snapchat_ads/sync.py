@@ -168,9 +168,14 @@ def sync_endpoint(
     if stream_name == 'organizations':
         parent_id = config.get('organization_id', None)
         if not parent_id:
-            raise 'not found/missing organization_id in config'
+            raise 'organization_id not found or missing'
     if stream_name == 'ad_accounts':
-        parent_id = config.get('adaccounts_id', parent_id)
+        adaccounts_id = config.get('adaccounts_id', None)
+        if adaccounts_id:
+            base_path = 'adaccounts/{parent_id}',
+            parent_id = adaccounts_id
+        else:
+            LOGGER.info('adaccounts_id not found: Retrieve all ad accounts unstead')
 
     # endpoint_config variables
     base_path = endpoint_config.get('path', stream_name)
