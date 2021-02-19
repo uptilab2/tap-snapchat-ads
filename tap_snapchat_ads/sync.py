@@ -11,9 +11,21 @@ LOGGER = singer.get_logger()
 BASE_URL = 'https://adsapi.snapchat.com/v1'
 
 
-def write_schema(catalog, stream_name):
+def selected_properties(schema, stream_name, config):
+    custom_reports = config.get('custom_report', [])
+    if custom_reports:
+        custom_report = [cr for cr in custom_reports if cr.get('name') == stream_name]
+        if custom_report:
+            selected_properties = {key: value for key, value in schema['properties'].items() 
+                                    if key in custom_report[0]['columns']}
+            schema['properties'] = selected_properties
+    return schema
+
+
+def write_schema(catalog, stream_name, config):
     stream = catalog.get_stream(stream_name)
     schema = stream.schema.to_dict()
+    schema = selected_properties(schema, stream_name, config)
     try:
         singer.write_schema(stream_name, schema, stream.key_properties)
     except OSError as err:
@@ -80,11 +92,13 @@ def process_records(catalog, #pylint: disable=too-many-branches
                     stream_name,
                     records,
                     time_extracted,
+                    config,
                     bookmark_field=None,
                     max_bookmark_value=None,
                     last_datetime=None):
     stream = catalog.get_stream(stream_name)
     schema = stream.schema.to_dict()
+    schema = selected_properties(schema, stream_name, config)
     stream_metadata = metadata.to_map(stream.metadata)
 
     with metrics.record_counter(stream_name) as counter:
@@ -149,6 +163,8 @@ def sync_endpoint(
         timezone_desc=None,
         parent_id=None):
 
+
+
     # endpoint_config variables
     base_path = endpoint_config.get('path', stream_name)
     bookmark_field = next(iter(endpoint_config.get('replication_keys', [])), None)
@@ -164,6 +180,19 @@ def sync_endpoint(
     id_fields = endpoint_config.get('key_properties')
     parent = endpoint_config.get('parent')
     date_window_size = int(endpoint_config.get('date_window_size', '1'))
+
+    # Handle one organization per run
+    # adaccounts_id is optional
+    if stream_name == 'organizations':
+        organization_id = config.get('organization_id', None)
+        if not organization_id:
+            raise 'organization_id not found or missing'
+    if stream_name == 'ad_accounts':
+        adaccounts_id = config.get('adaccounts_id', None)
+        if adaccounts_id:
+            base_path = 'adaccounts/{adaccounts_id}'
+        else:
+            LOGGER.info('adaccounts_id not found... retrieve all ad accounts...')
 
     # tap config variabless
     start_date = config.get('start_date')
@@ -261,9 +290,18 @@ def sync_endpoint(
                     country_code=country_code,
                     parent_id=parent_id)
             else:
-                path = base_path.format(
-                    country_code=country_code,
-                    parent_id=parent_id)
+                if stream_name == "organizations":
+                    path = base_path.format(
+                        country_code=country_code,
+                        organization_id=organization_id) 
+                elif stream_name == "ad_accounts" and adaccounts_id:
+                    path = base_path.format(
+                        country_code=country_code,
+                        adaccounts_id=adaccounts_id)
+                else:
+                    path = base_path.format(
+                        country_code=country_code,
+                        parent_id=parent_id)
 
             # pagination: loop thru all pages of data using next (if not None)
             #   Reference: https://developers.snapchat.com/api/docs/#pagination
@@ -424,6 +462,7 @@ def sync_endpoint(
                         catalog=catalog,
                         stream_name=stream_name,
                         records=transformed_data,
+                        config=config,
                         time_extracted=time_extracted,
                         bookmark_field=bookmark_field,
                         max_bookmark_value=max_bookmark_value,
@@ -437,7 +476,7 @@ def sync_endpoint(
                     for child_stream_name, child_endpoint_config in children.items():
                         if child_stream_name in sync_streams:
                             LOGGER.info('START Syncing: {}'.format(child_stream_name))
-                            write_schema(catalog, child_stream_name)
+                            write_schema(catalog, child_stream_name, config)
                             # For each parent record
                             for record in transformed_data:
                                 i = 0
@@ -564,7 +603,7 @@ def sync(client, config, catalog, state):
     for stream_name, endpoint_config in STREAMS.items():
         if stream_name in sync_streams:
             LOGGER.info('START Syncing: {}'.format(stream_name))
-            write_schema(catalog, stream_name)
+            write_schema(catalog, stream_name, config)
             update_currently_syncing(state, stream_name)
 
             total_records = sync_endpoint(
