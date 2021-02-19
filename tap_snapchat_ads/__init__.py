@@ -12,6 +12,7 @@ from tap_snapchat_ads.sync import sync
 LOGGER = singer.get_logger()
 
 REQUIRED_CONFIG_KEYS = [
+    'organization_id',
     'client_id',
     'client_secret',
     'refresh_token',

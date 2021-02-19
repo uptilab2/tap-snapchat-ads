@@ -163,6 +163,15 @@ def sync_endpoint(
         timezone_desc=None,
         parent_id=None):
 
+    # Handle one organization per run
+    # adaccounts_id is optional
+    if stream_name == 'organizations':
+        parent_id = config.get('organization_id', None)
+        if parent_id:
+            raise 'not found/missing organization_id in config'
+    if stream_name == 'ad_accounts':
+        parent_id = config.get('adaccounts_id', parent_id)
+
     # endpoint_config variables
     base_path = endpoint_config.get('path', stream_name)
     bookmark_field = next(iter(endpoint_config.get('replication_keys', [])), None)
