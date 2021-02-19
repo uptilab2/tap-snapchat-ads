@@ -175,7 +175,7 @@ def sync_endpoint(
             base_path = 'adaccounts/{parent_id}',
             parent_id = adaccounts_id
         else:
-            LOGGER.info('adaccounts_id not found: Retrieve all ad accounts unstead')
+            LOGGER.info('adaccounts_id not found... retrieve all ad accounts...')
 
     # endpoint_config variables
     base_path = endpoint_config.get('path', stream_name)
