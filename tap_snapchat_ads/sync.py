@@ -163,19 +163,7 @@ def sync_endpoint(
         timezone_desc=None,
         parent_id=None):
 
-    # Handle one organization per run
-    # adaccounts_id is optional
-    if stream_name == 'organizations':
-        parent_id = config.get('organization_id', None)
-        if not parent_id:
-            raise 'organization_id not found or missing'
-    if stream_name == 'ad_accounts':
-        adaccounts_id = config.get('adaccounts_id', None)
-        if adaccounts_id:
-            base_path = 'adaccounts/{parent_id}',
-            parent_id = adaccounts_id
-        else:
-            LOGGER.info('adaccounts_id not found... retrieve all ad accounts...')
+
 
     # endpoint_config variables
     base_path = endpoint_config.get('path', stream_name)
@@ -192,6 +180,20 @@ def sync_endpoint(
     id_fields = endpoint_config.get('key_properties')
     parent = endpoint_config.get('parent')
     date_window_size = int(endpoint_config.get('date_window_size', '1'))
+
+    # Handle one organization per run
+    # adaccounts_id is optional
+    if stream_name == 'organizations':
+        parent_id = config.get('organization_id', None)
+        if not parent_id:
+            raise 'organization_id not found or missing'
+    if stream_name == 'ad_accounts':
+        adaccounts_id = config.get('adaccounts_id', None)
+        if adaccounts_id:
+            base_path = 'adaccounts/{parent_id}'
+            parent_id = adaccounts_id
+        else:
+            LOGGER.info('adaccounts_id not found... retrieve all ad accounts...')
 
     # tap config variabless
     start_date = config.get('start_date')
