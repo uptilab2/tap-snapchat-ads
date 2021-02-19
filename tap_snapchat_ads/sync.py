@@ -184,14 +184,13 @@ def sync_endpoint(
     # Handle one organization per run
     # adaccounts_id is optional
     if stream_name == 'organizations':
-        parent_id = config.get('organization_id', None)
-        if not parent_id:
+        organization_id = config.get('organization_id', None)
+        if not organization_id:
             raise 'organization_id not found or missing'
     if stream_name == 'ad_accounts':
         adaccounts_id = config.get('adaccounts_id', None)
         if adaccounts_id:
-            base_path = 'adaccounts/{parent_id}'
-            parent_id = adaccounts_id
+            base_path = 'adaccounts/{adaccounts_id}'
         else:
             LOGGER.info('adaccounts_id not found... retrieve all ad accounts...')
 
@@ -291,9 +290,18 @@ def sync_endpoint(
                     country_code=country_code,
                     parent_id=parent_id)
             else:
-                path = base_path.format(
-                    country_code=country_code,
-                    parent_id=parent_id)
+                if stream_name == "organizations":
+                    path = base_path.format(
+                        country_code=country_code,
+                        organization_id=organization_id) 
+                elif stream_name == "ad_accounts" and adaccounts_id:
+                    path = base_path.format(
+                        country_code=country_code,
+                        adaccounts_id=adaccounts_id)
+                else:
+                    path = base_path.format(
+                        country_code=country_code,
+                        parent_id=parent_id)
 
             # pagination: loop thru all pages of data using next (if not None)
             #   Reference: https://developers.snapchat.com/api/docs/#pagination

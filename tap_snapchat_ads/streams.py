@@ -25,7 +25,7 @@ STREAMS = {
         'key_properties': ['id'],
         'replication_method': 'INCREMENTAL',
         'replication_keys': ['updated_at'],
-        'path': 'organizations/{parent_id}',
+        'path': 'organizations/{organization_id}',
         'data_key_array': 'organizations',
         'data_key_record': 'organization',
         'paging': False,
